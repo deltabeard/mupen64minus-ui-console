@@ -1,17 +1,12 @@
+<img align="right" width="128" height="128" alt="Mupen64 Logo" src="data/icons/scalable/apps/mupen64plus.svg">
 
-===============================================================================
--------------------------------------------------------------------------------
-Mupen64plus-ui-console README                                              v2.5
--------------------------------------------------------------------------------
-===============================================================================
+# Mupen64plus-ui-console v2.5
 
 The latest documentation for this plugin can be found at:
 
 https://mupen64plus.org/wiki/index.php/UIConsoleUsage
 
--------------------------------------------------------------------------------
-Console Options
--------------------------------------------------------------------------------
+## Console Options
 
 At startup, the mupen64plus program will look for a user configuration file
 called 'mupen64plus.cfg'.  If this file does not exist, it will be created and
@@ -20,6 +15,7 @@ be specified using the --configdir commandline option.
 
 Run 'mupen64plus --help' for a complete list of commandline options: 
 
+```
  $ mupen64plus --help
 Usage: mupen64plus [parameter(s)] [romfile]
 
@@ -66,14 +62,15 @@ Parameters:
     'all'                  : enable all of the available cheat codes
     (codelist)             : a comma-separated list of cheat code numbers to enable,
                              with dashes to use code variables (ex 1-2 to use cheat 1 option 2)
+```
 
--------------------------------------------------------------------------------
-Cheats
--------------------------------------------------------------------------------
+## Cheats
 
 To list the available cheats in the rom:
 
+```
 mupen64plus --cheats list "/path/to/my/rom.v64"
+```
 
 If there are cheats in the rom, you will get (in the output console):
 
@@ -84,19 +81,17 @@ UI-Console: 3 cheat code(s) found for ROM 'MY ROM'
 
 All you have to do to use this cheats is:
 
+```
 mupen64plus --cheats 0,1,2 "/path/to/my/rom.v64"
+```
 
--------------------------------------------------------------------------------
-Debugger
--------------------------------------------------------------------------------
+## Debugger
 
-Setup
-=====
+### Setup
 
 You must use a mupen64plus core library which was built with the DEBUGGER flag set.
 
-Running
-=======
+### Running
 
 Use the --debug command-line option to enable the console debugger.
 
@@ -104,16 +99,18 @@ The emulator mode should be set to "interpreter", as the dynarec seems to cause
 issues when interacting with the debugging API. This can be done with the R4300Emulator
 config setting or with the --emumode flag.
 
-Usage
-=====
+### Usage
 
 Once the emulator boots, it will be paused by default. You will be presented
 with a prompt as follows:
 
+```
 (dbg) 
+```
 
 The following commands can be entered:
 
+```
 run
   Unpauses the game.
 
@@ -213,10 +210,9 @@ bp list
 
 exit|quit
   Stop emulator and quit debugger
+```
 
--------------------------------------------------------------------------------
-64DD Support
--------------------------------------------------------------------------------
+## 64DD Support
 
 Some compatibility with the 64DD disk drive unit has been implemented, but there
 are a few small usability issues of which users should be aware.
