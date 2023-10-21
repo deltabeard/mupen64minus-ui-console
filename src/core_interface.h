@@ -80,6 +80,7 @@ extern ptr_ConfigGetUserConfigPath     ConfigGetUserConfigPath;
 extern ptr_ConfigGetUserDataPath       ConfigGetUserDataPath;
 extern ptr_ConfigGetUserCachePath      ConfigGetUserCachePath;
 
+#if ENABLE_DEBUGGER
 /* declarations of pointers to Core debugger functions */
 extern ptr_DebugSetCallbacks      DebugSetCallbacks;
 extern ptr_DebugSetCoreCompare    DebugSetCoreCompare;
@@ -107,6 +108,7 @@ extern ptr_DebugBreakpointCommand DebugBreakpointCommand;
 
 extern ptr_DebugBreakpointTriggeredBy DebugBreakpointTriggeredBy;
 extern ptr_DebugVirtualToPhysical     DebugVirtualToPhysical;
+#endif /* ENABLE_DEBUGGER */
 
 #endif /* #define CORE_INTERFACE_H */
 

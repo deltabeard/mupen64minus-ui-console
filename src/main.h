@@ -28,6 +28,10 @@
 #define ATTR_FMT(fmtpos, attrpos)
 #endif
 
+#ifndef ENABLE_DEBUGGER
+# define ENABLE_DEBUGGER 0
+#endif
+
 extern void DebugMessage(int level, const char *message, ...) ATTR_FMT(2,3);
 extern void DebugCallback(void *Context, int level, const char *message);
 

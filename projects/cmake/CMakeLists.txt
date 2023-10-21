@@ -1,5 +1,6 @@
 # vim: ts=4:sw=4:expandtab
 CMAKE_MINIMUM_REQUIRED(VERSION 3.18...3.23)
+include(CMakeDependentOption)
 
 ## Check user set options.
 IF(NOT CMAKE_BUILD_TYPE)
@@ -14,7 +15,12 @@ ELSE()
     ENDIF()
 ENDIF()
 
-PROJECT(mupen64minus-ui-console LANGUAGES VERSION 2.5.9)
+
+PROJECT(mupen64minus-ui-console LANGUAGES C VERSION 2.5.9)
+
+find_package(Threads)
+# Only enable debugger if pthreads available.
+cmake_dependent_option(ENABLE_DEBUGGER "Enable M64 debugger" ON "CMAKE_USE_PTHREADS_INIT" OFF)
 
 set(M64API_DIR ../../../mupen64plus-core/src/api CACHE PATH "Path to Mupen64 API folder")
 set(SRCDIR ../../src)
@@ -23,9 +29,15 @@ ADD_EXECUTABLE(mupen64minus-ui-console
     ${SRCDIR}/cheat.c
     ${SRCDIR}/compare_core.c
     ${SRCDIR}/core_interface.c
-    ${SRCDIR}/debugger.c
     ${SRCDIR}/main.c
     ${SRCDIR}/plugin.c)
+
+if(ENABLE_DEBUGGER)
+    TARGET_SOURCES(mupen64minus-ui-console PRIVATE ${SRCDIR}/debugger.c)
+    TARGET_COMPILE_DEFINITIONS(mupen64minus-ui-console PRIVATE ENABLE_DEBUGGER=1)
+else()
+    TARGET_COMPILE_DEFINITIONS(mupen64minus-ui-console PRIVATE ENABLE_DEBUGGER=0)
+endif()
 
 if(WIN32)
     TARGET_SOURCES(mupen64minus-ui-console PRIVATE

@@ -22,7 +22,9 @@
 #ifndef __DEBUGGER_H__
 #define __DEBUGGER_H__
 
-extern int debugger_loop_wait;
+#include <pthread.h>
+extern pthread_cond_t debugger_loop_wait;
+extern pthread_mutex_t debugger_loop_lock;
 
 typedef struct {
   unsigned int addr;
@@ -31,6 +33,6 @@ typedef struct {
 
 int debugger_setup_callbacks();
 int debugger_step();
-int debugger_loop(void *arg);
+void *debugger_loop(void *arg);
 
 #endif /* __DEBUGGER_H__ */

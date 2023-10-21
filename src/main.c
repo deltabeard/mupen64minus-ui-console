@@ -30,20 +30,23 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <SDL.h>
-#include <SDL_main.h>
-#include <SDL_thread.h>
-
 #include "cheat.h"
 #include "compare_core.h"
 #include "core_interface.h"
-#include "debugger.h"
 #include "m64p_types.h"
 #include "main.h"
 #include "osal_preproc.h"
 #include "osal_files.h"
 #include "plugin.h"
 #include "version.h"
+
+#ifndef ENABLE_DEBUGGER
+# define ENABLE_DEBUGGER 0
+#endif
+#if ENABLE_DEBUGGER
+# include "debugger.h"
+# include <pthread.h>
+#endif
 
 #ifdef VIDEXT_HEADER
 #define xstr(s) str(s)
@@ -78,10 +81,13 @@ static const char *l_SaveStatePath = NULL;     // save state to load at startup
 #endif
 
 static int  *l_TestShotList = NULL;      // list of screenshots to take for regression test support
-static int   l_TestShotIdx = 0;          // index of next screenshot frame in list
+//static int   l_TestShotIdx = 0;          // index of next screenshot frame in list
 static int   l_SaveOptions = 1;          // save command-line options in configuration file (enabled by default)
 static int   l_CoreCompareMode = 0;      // 0 = disable, 1 = send, 2 = receive
+
+#if ENABLE_DEBUGGER
 static int   l_LaunchDebugger = 0;
+#endif
 
 static eCheatMode l_CheatMode = CHEAT_DISABLE;
 static char      *l_CheatNumList = NULL;
@@ -142,6 +148,7 @@ void DebugCallback(void *Context, int level, const char *message)
 
 static void FrameCallback(unsigned int FrameIndex)
 {
+#ifdef M64CMD_TAKE_NEXT_SCREENSHOT
     // take a screenshot if we need to
     if (l_TestShotList != NULL)
     {
@@ -159,6 +166,7 @@ static void FrameCallback(unsigned int FrameIndex)
             l_TestShotList = NULL;
         }
     }
+#endif
 }
 
 static char *formatstr(const char *fmt, ...) ATTR_FMT(1, 2);
@@ -372,7 +380,9 @@ static void printUsage(const char *progname)
            "    --corelib (filepath)   : use core library (filepath) (can be only filename or full path)\n"
            "    --configdir (dir)      : force configation directory to (dir); should contain mupen64plus.cfg\n"
            "    --datadir (dir)        : search for shared data files (.ini files, languages, etc) in (dir)\n"
+#if ENABLE_DEBUGGER
            "    --debug                : launch console-based debugger (requires core lib built for debugging)\n"
+#endif
            "    --plugindir (dir)      : search for plugins in (dir)\n"
            "    --sshotdir (dir)       : set screenshot directory to (dir)\n"
            "    --gfx (plugin-spec)    : use gfx plugin given by (plugin-spec)\n"
@@ -699,10 +709,12 @@ static m64p_error ParseCommandLineMain(int argc, const char **argv)
             /* skip this: it will be handled in ParseCommandLinePlugin */
             i++;
         }
+#if ENABLE_DEBUGGER
         else if (strcmp(argv[i], "--debug") == 0)
         {
             l_LaunchDebugger = 1;
         }
+#endif
         else if (strcmp(argv[i], "--core-compare-send") == 0)
         {
             l_CoreCompareMode = 1;
@@ -907,12 +919,6 @@ static m64p_media_loader l_media_loader =
 #define CALLBACK_FUNC NULL
 #endif
 
-#ifndef WIN32
-/* Allow external modules to call the main function as a library method.  This is useful for user
- * interfaces that simply layer on top of (rather than re-implement) UI-Console (e.g. mupen64plus-ae).
- */
-__attribute__ ((visibility("default")))
-#endif
 int main(int argc, char *argv[])
 {
     int i;
@@ -978,7 +984,8 @@ int main(int argc, char *argv[])
         return 6;
     }
     compare_core_init(l_CoreCompareMode);
-    
+
+#if ENABLE_DEBUGGER
     /* Ensure that the core supports the debugger if necessary */
     if (l_LaunchDebugger && !(g_CoreCapabilities & M64CAPS_DEBUGGER))
     {
@@ -986,6 +993,7 @@ int main(int argc, char *argv[])
         DetachCoreLib();
         return 6;
     }
+#endif
 
     /* save the given command-line options in configuration file if requested */
     if (l_SaveOptions)
@@ -1106,8 +1114,11 @@ int main(int argc, char *argv[])
     }
 
     /* Setup debugger */
+#if ENABLE_DEBUGGER
     if (l_LaunchDebugger)
     {
+        pthread_t debugger_thread_id;
+        int bEnableDebugger = 1;
         if (debugger_setup_callbacks())
         {
             DebugMessage(M64MSG_ERROR, "couldn't setup debugger callbacks.");
@@ -1117,16 +1128,14 @@ int main(int argc, char *argv[])
             return 14;
         }
         /* Set Core config parameter to enable debugger */
-        int bEnableDebugger = 1;
         (*ConfigSetParameter)(l_ConfigCore, "EnableDebugger", M64TYPE_BOOL, &bEnableDebugger);
         /* Fork the debugger input thread. */
-#if SDL_VERSION_ATLEAST(2,0,0)
-        SDL_CreateThread(debugger_loop, "DebugLoop", NULL);
-#else
-        SDL_CreateThread(debugger_loop, NULL);
-#endif
+        //SDL_CreateThread(debugger_loop, "DebugLoop", NULL);
+        pthread_create(&debugger_thread_id, NULL, debugger_loop, NULL);
+        pthread_setname_np(debugger_thread_id, "DebugLoop");
     }
     else
+#endif
     {
         /* Set Core config parameter to disable debugger */
         int bEnableDebugger = 0;

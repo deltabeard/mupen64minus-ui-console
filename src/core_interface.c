@@ -32,13 +32,16 @@
 #include "core_interface.h"
 #include "m64p_common.h"
 #include "m64p_config.h"
-#include "m64p_debugger.h"
 #include "m64p_frontend.h"
 #include "m64p_types.h"
 #include "main.h"
 #include "osal_dynamiclib.h"
 #include "osal_preproc.h"
 #include "version.h"
+
+#if ENABLE_DEBUGGER
+# include "m64p_debugger.h"
+#endif
 
 /* global data definitions */
 int g_CoreCapabilities;
@@ -87,6 +90,7 @@ ptr_ConfigGetUserConfigPath     ConfigGetUserConfigPath = NULL;
 ptr_ConfigGetUserDataPath       ConfigGetUserDataPath = NULL;
 ptr_ConfigGetUserCachePath      ConfigGetUserCachePath = NULL;
 
+#if ENABLE_DEBUGGER
 /* definitions of pointers to Core debugger functions */
 ptr_DebugSetCallbacks      DebugSetCallbacks = NULL;
 ptr_DebugSetCoreCompare    DebugSetCoreCompare = NULL;
@@ -114,6 +118,7 @@ ptr_DebugBreakpointCommand DebugBreakpointCommand = NULL;
 
 ptr_DebugBreakpointTriggeredBy DebugBreakpointTriggeredBy = NULL;
 ptr_DebugVirtualToPhysical     DebugVirtualToPhysical = NULL;
+#endif
 
 /* global variables */
 m64p_dynlib_handle CoreHandle = NULL;
@@ -279,6 +284,7 @@ m64p_error AttachCoreLib(const char *CoreLibFilepath)
     ConfigGetUserDataPath = (ptr_ConfigGetUserDataPath) osal_dynlib_getproc(CoreHandle, "ConfigGetUserDataPath");
     ConfigGetUserCachePath = (ptr_ConfigGetUserCachePath) osal_dynlib_getproc(CoreHandle, "ConfigGetUserCachePath");
 
+#if ENABLE_DEBUGGER
     /* get function pointers to the debugger functions */
     DebugSetCallbacks = (ptr_DebugSetCallbacks) osal_dynlib_getproc(CoreHandle, "DebugSetCallbacks");
     DebugSetCoreCompare = (ptr_DebugSetCoreCompare) osal_dynlib_getproc(CoreHandle, "DebugSetCoreCompare");
@@ -306,6 +312,7 @@ m64p_error AttachCoreLib(const char *CoreLibFilepath)
 
     DebugBreakpointTriggeredBy = (ptr_DebugBreakpointTriggeredBy) osal_dynlib_getproc(CoreHandle, "DebugBreakpointTriggeredBy");
     DebugVirtualToPhysical = (ptr_DebugVirtualToPhysical) osal_dynlib_getproc(CoreHandle, "DebugVirtualToPhysical");
+#endif
 
     return M64ERR_SUCCESS;
 }
@@ -351,6 +358,7 @@ m64p_error DetachCoreLib(void)
     ConfigGetUserDataPath = NULL;
     ConfigGetUserCachePath = NULL;
 
+#if ENABLE_DEBUGGER
     DebugSetCallbacks = NULL;
     DebugSetCoreCompare = NULL;
     DebugSetRunState = NULL;
@@ -377,6 +385,7 @@ m64p_error DetachCoreLib(void)
 
     DebugBreakpointTriggeredBy = NULL;
     DebugVirtualToPhysical = NULL;
+#endif
 
     /* detach the shared library */
     osal_dynlib_close(CoreHandle);

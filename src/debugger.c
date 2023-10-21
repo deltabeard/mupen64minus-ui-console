@@ -19,14 +19,13 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.          *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
+#include <pthread.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdint.h>
 
 #include "core_interface.h"
 #include "debugger.h"
-
-#include <SDL.h>
 
 /*
  * Variables
@@ -53,7 +52,8 @@ long long int prev_reg_values[32];
 char reg_ran_previously = 0;
 
 // Used to wait for core response before requesting next command.
-int debugger_loop_wait = 1;
+pthread_cond_t debugger_loop_wait = PTHREAD_COND_INITIALIZER;
+pthread_mutex_t debugger_loop_lock = PTHREAD_MUTEX_INITIALIZER;
 
 // Counter indicating the number of DebugStep() calls we need to make yet.
 static int debugger_steps_pending = 0;
@@ -80,8 +80,10 @@ void dbg_frontend_update(unsigned int pc) {
     cur_pc = pc;
     if (!debugger_steps_pending) {
         printf("\nPC at 0x%08X.\n", pc);
-        debugger_loop_wait = 0;
+        pthread_mutex_lock(&debugger_loop_lock);
+        pthread_cond_signal(&debugger_loop_wait);
         cur_run_state = 0;
+        pthread_mutex_unlock(&debugger_loop_lock);
     }
     else {
         --debugger_steps_pending;
@@ -187,13 +189,14 @@ typedef enum {
 /*
  * Debugger main loop
  */
-int debugger_loop(void *arg) {
+void *debugger_loop(void *arg) {
     char input[256];
+    (void) arg;
+
     while (1) {
-        if (debugger_loop_wait) {
-            SDL_Delay(1);
-            continue;
-        }
+        pthread_mutex_lock(&debugger_loop_lock);
+        pthread_cond_wait(&debugger_loop_wait, &debugger_loop_lock);
+        pthread_mutex_unlock(&debugger_loop_lock);
 
         printf("(dbg) ");
         if (fgets(input, 256, stdin) == NULL) {
@@ -220,7 +223,6 @@ int debugger_loop(void *arg) {
               continue;
             }
 
-            debugger_loop_wait = 1;
             debugger_steps_pending = 1;
             sscanf(input, "step %d", &debugger_steps_pending);
             if (debugger_steps_pending < 1)
@@ -534,6 +536,6 @@ int debugger_loop(void *arg) {
             printf("Unrecognized: %s\n", input);
     }
 
-    return -1;
+    return NULL;
 }
 

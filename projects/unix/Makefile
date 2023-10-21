@@ -103,21 +103,21 @@ ifeq ($(OS), OSX)
 endif
 
 # test for presence of SDL
-ifeq ($(origin SDL_CFLAGS) $(origin SDL_LDLIBS), undefined undefined)
-  SDL_CONFIG = $(CROSS_COMPILE)sdl2-config
-  ifeq ($(shell which $(SDL_CONFIG) 2>/dev/null),)
-    SDL_CONFIG = $(CROSS_COMPILE)sdl-config
-    ifeq ($(shell which $(SDL_CONFIG) 2>/dev/null),)
-      $(error No SDL development libraries found!)
-    else
-      $(warning Using SDL 1.2 libraries)
-    endif
-  endif
-  SDL_CFLAGS  += $(shell $(SDL_CONFIG) --cflags)
-  SDL_LDLIBS += $(shell $(SDL_CONFIG) --libs)
-endif
-CFLAGS += $(SDL_CFLAGS)
-LDLIBS += $(SDL_LDLIBS)
+#ifeq ($(origin SDL_CFLAGS) $(origin SDL_LDLIBS), undefined undefined)
+#  SDL_CONFIG = $(CROSS_COMPILE)sdl2-config
+#  ifeq ($(shell which $(SDL_CONFIG) 2>/dev/null),)
+#    SDL_CONFIG = $(CROSS_COMPILE)sdl-config
+#    ifeq ($(shell which $(SDL_CONFIG) 2>/dev/null),)
+#      $(error No SDL development libraries found!)
+#    else
+#      $(warning Using SDL 1.2 libraries)
+#    endif
+#  endif
+#  SDL_CFLAGS  += $(shell $(SDL_CONFIG) --cflags)
+#  SDL_LDLIBS += $(shell $(SDL_CONFIG) --libs)
+#endif
+#CFLAGS += $(SDL_CFLAGS)
+#LDLIBS += $(SDL_LDLIBS)
 
 ifeq ($(OS), MINGW)
   LDLIBS += -mconsole
@@ -252,6 +252,11 @@ ifeq ($(DEBUG),1)
 else
   INSTALL_STRIP_FLAG ?= -s
 endif
+ifeq ($(DEBUGGER),1)
+  CFLAGS += -DENABLE_DEBUGGER=1
+else
+  CFLAGS += -DENABLE_DEBUGGER=0
+endif
 
 SRCDIR = ../../src
 OBJDIR = _obj$(POSTFIX)
@@ -315,6 +320,7 @@ targets:
 	@echo "    DESTDIR=path   == path to prepend to all installation paths (only for packagers)"
 	@echo "  Debugging Options:"
 	@echo "    DEBUG=1        == add debugging symbols to application binary"
+	@echo "    DEBUGGER=1     == enable debugging capability"
 	@echo "    V=1            == show verbose compiler output"
 
 all: $(TARGET)
