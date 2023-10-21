@@ -1,4 +1,4 @@
-<img align="right" width="128" height="128" alt="Mupen64 Logo" src="data/icons/scalable/apps/mupen64plus.svg">
+<img align="right" width="127" height="127" alt="Mupen64 Logo" src="data/icons/scalable/apps/mupen64plus.svg">
 
 # Mupen64plus-ui-console v2.5
 
