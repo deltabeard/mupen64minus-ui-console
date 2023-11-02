@@ -4,6 +4,7 @@
  *   Copyright (C) 2007-2018 Richard42                                     *
  *   Copyright (C) 2008 Ebenblues Nmn Okaygo Tillin9                       *
  *   Copyright (C) 2002 Hacktarux                                          *
+ *   Copyright (C) 2023 Mahyar Koshkouei <mk@deltabeard.com>               *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -1117,7 +1118,6 @@ int main(int argc, char *argv[])
 #if ENABLE_DEBUGGER
     if (l_LaunchDebugger)
     {
-        pthread_t debugger_thread_id;
         int bEnableDebugger = 1;
         if (debugger_setup_callbacks())
         {
@@ -1129,10 +1129,6 @@ int main(int argc, char *argv[])
         }
         /* Set Core config parameter to enable debugger */
         (*ConfigSetParameter)(l_ConfigCore, "EnableDebugger", M64TYPE_BOOL, &bEnableDebugger);
-        /* Fork the debugger input thread. */
-        //SDL_CreateThread(debugger_loop, "DebugLoop", NULL);
-        pthread_create(&debugger_thread_id, NULL, debugger_loop, NULL);
-        pthread_setname_np(debugger_thread_id, "DebugLoop");
     }
     else
 #endif

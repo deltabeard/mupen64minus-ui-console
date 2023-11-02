@@ -2,6 +2,7 @@
  *   Mupen64plus-ui-console - debugger.h                                   *
  *   Mupen64Plus homepage: https://mupen64plus.org/                        *
  *   Copyright (C) 2014 Will Nayes                                         *
+ *   Copyright (C) 2023 Mahyar Koshkouei <mk@deltabeard.com>               *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -22,17 +23,8 @@
 #ifndef __DEBUGGER_H__
 #define __DEBUGGER_H__
 
-#include <pthread.h>
-extern pthread_cond_t debugger_loop_wait;
-extern pthread_mutex_t debugger_loop_lock;
-
-typedef struct {
-  unsigned int addr;
-  unsigned char enabled;
-} breakpoint_t;
-
-int debugger_setup_callbacks();
-int debugger_step();
+int debugger_setup_callbacks(void);
+int debugger_step(void);
 void *debugger_loop(void *arg);
 
 #endif /* __DEBUGGER_H__ */

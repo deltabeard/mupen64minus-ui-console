@@ -2,6 +2,7 @@
  *   Mupen64plus-ui-console - debugger.c                                   *
  *   Mupen64Plus homepage: https://mupen64plus.org/                        *
  *   Copyright (C) 2014 Will Nayes                                         *
+ *   Copyright (C) 2023 Mahyar Koshkouei <mk@deltabeard.com>               *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -52,8 +53,8 @@ long long int prev_reg_values[32];
 char reg_ran_previously = 0;
 
 // Used to wait for core response before requesting next command.
-pthread_cond_t debugger_loop_wait = PTHREAD_COND_INITIALIZER;
-pthread_mutex_t debugger_loop_lock = PTHREAD_MUTEX_INITIALIZER;
+static pthread_cond_t debugger_loop_wait = PTHREAD_COND_INITIALIZER;
+static pthread_mutex_t debugger_loop_lock = PTHREAD_MUTEX_INITIALIZER;
 
 // Counter indicating the number of DebugStep() calls we need to make yet.
 static int debugger_steps_pending = 0;
@@ -65,24 +66,28 @@ static int cur_run_state = 0;
 static unsigned int cur_pc = 0;
 
 // Keep track of breakpoints locally.
-static m64p_breakpoint *breakpoints;
+static m64p_breakpoint breakpoints[BREAKPOINTS_MAX_NUMBER];
 static int num_breakpoints = 0;
 
 /*
  * Debugger callbacks.
  */
-void dbg_frontend_init() {
-    breakpoints = (m64p_breakpoint *) malloc(BREAKPOINTS_MAX_NUMBER * sizeof(m64p_breakpoint));
+static void dbg_frontend_init(void) {
+    pthread_t debugger_thread_id;
+    /* Fork the debugger input thread. */
+    pthread_create(&debugger_thread_id, NULL, debugger_loop, NULL);
     printf("Debugger initialized.\n");
 }
 
-void dbg_frontend_update(unsigned int pc) {
+static void dbg_frontend_update(unsigned int pc) {
     cur_pc = pc;
     if (!debugger_steps_pending) {
         printf("\nPC at 0x%08X.\n", pc);
-        pthread_mutex_lock(&debugger_loop_lock);
-        pthread_cond_signal(&debugger_loop_wait);
         cur_run_state = 0;
+
+        /* Wait for new command from user. */
+        pthread_mutex_lock(&debugger_loop_lock);
+        pthread_cond_wait(&debugger_loop_wait, &debugger_loop_lock);
         pthread_mutex_unlock(&debugger_loop_lock);
     }
     else {
@@ -91,7 +96,7 @@ void dbg_frontend_update(unsigned int pc) {
     }
 }
 
-void dbg_frontend_vi() {
+static void dbg_frontend_vi(void) {
     //printf("Debugger vertical int.\n");
 }
 
@@ -105,48 +110,48 @@ int debugger_setup_callbacks() {
     return rval != M64ERR_SUCCESS;
 }
 
-int debugger_set_run_state(int state) {
+static int debugger_set_run_state(int state) {
     m64p_error rval = (*DebugSetRunState)((m64p_dbg_runstate) state);
     return rval != M64ERR_SUCCESS;
 }
 
-int debugger_step() {
+int debugger_step(void) {
     m64p_error rval = (*DebugStep)();
     return rval != M64ERR_SUCCESS;
 }
 
 // Retrieve the program counter.
-int debugger_get_prev_pc() {
+static int debugger_get_prev_pc() {
     return (*DebugGetState)(M64P_DBG_PREVIOUS_PC);
 }
 
-int64_t debugger_read_64(unsigned int addr) {
+static int64_t debugger_read_64(unsigned int addr) {
     return (*DebugMemRead64)(addr);
 }
-int debugger_read_32(unsigned int addr) {
+static int debugger_read_32(unsigned int addr) {
     return (*DebugMemRead32)(addr);
 }
-int debugger_read_16(unsigned int addr) {
+static int debugger_read_16(unsigned int addr) {
     return (*DebugMemRead16)(addr);
 }
-int debugger_read_8(unsigned int addr) {
+static int debugger_read_8(unsigned int addr) {
     return (*DebugMemRead8)(addr);
 }
 
-void debugger_write_64(unsigned int addr, unsigned long long value) {
+static void debugger_write_64(unsigned int addr, unsigned long long value) {
     (*DebugMemWrite64)(addr, value);
 }
-void debugger_write_32(unsigned int addr, unsigned int value) {
+static void debugger_write_32(unsigned int addr, unsigned int value) {
     (*DebugMemWrite32)(addr, value);
 }
-void debugger_write_16(unsigned int addr, unsigned short value) {
+static void debugger_write_16(unsigned int addr, unsigned short value) {
     (*DebugMemWrite16)(addr, value);
 }
-void debugger_write_8(unsigned int addr, unsigned char value) {
+static void debugger_write_8(unsigned int addr, unsigned char value) {
     (*DebugMemWrite8)(addr, value);
 }
 
-int debugger_print_registers() {
+static int debugger_print_registers(void) {
     unsigned long long int *regs = (unsigned long long int *) (*DebugGetCPUDataPtr)(M64P_CPU_REG_REG);
     if (regs == NULL)
         return -1;
@@ -180,26 +185,26 @@ int debugger_print_registers() {
     return 0;
 }
 
-typedef enum {
-    M64P_ASM_FLAG_INDEX = 0x01,
-    M64P_ASM_FLAG_ADDR = 0x02,
-    M64P_ASM_FLAG_BINARY = 0x04
-} disassembly_flags;
-
 /*
  * Debugger main loop
  */
 void *debugger_loop(void *arg) {
     char input[256];
+    enum {
+        M64P_ASM_FLAG_INDEX = 0x01,
+        M64P_ASM_FLAG_ADDR = 0x02,
+        M64P_ASM_FLAG_BINARY = 0x04
+    };
+
     (void) arg;
 
     while (1) {
-        pthread_mutex_lock(&debugger_loop_lock);
-        pthread_cond_wait(&debugger_loop_wait, &debugger_loop_lock);
-        pthread_mutex_unlock(&debugger_loop_lock);
+	    pthread_mutex_lock(&debugger_loop_lock);
+	    pthread_cond_signal(&debugger_loop_wait);
+	    pthread_mutex_unlock(&debugger_loop_lock);
 
         printf("(dbg) ");
-        if (fgets(input, 256, stdin) == NULL) {
+        if (fgets(input, sizeof(input), stdin) == NULL) {
             break;
         }
         input[strlen(input) - 1] = 0;
