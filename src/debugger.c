@@ -167,7 +167,7 @@ static int debugger_print_registers(void) {
         if (val_changed)
             printf("%c[1m", 27); // Bold on
 
-        // Print the register value, no padding if it is all zeroes. 
+        // Print the register value, no padding if it is all zeroes.
         printf(regs[i] == 0 ? format_nopad : format_padded,
                register_names[i], regs[i]);
 
@@ -206,14 +206,26 @@ void *debugger_loop(void *arg) {
 
         printf("(dbg) ");
         if (fgets(input, sizeof(input), stdin) == NULL) {
+            puts("Error obtaining input from stdin.");
             break;
         }
-        input[strlen(input) - 1] = 0;
+
+        input_len = strlen(input);
+        /* If input is empty or is a linebreak, wait for new command. */
+        if(input_len == 0 || input[0] == '\n')
+            continue;
+
+        /* Overwrite newline. */
+        if(input[input_len - 1] == '\n')
+        {
+            input_len--;
+            input[input_len] = '\0';
+        }
 
         if (strcmp(input, "run") == 0) {
             cur_run_state = 2;
             if (debugger_set_run_state(cur_run_state))
-                printf("Error setting run_state: run\n");
+                puts("Error setting run_state: run");
             else {
                 debugger_step(); // Hack to kick-start the emulation.
             }
@@ -221,16 +233,17 @@ void *debugger_loop(void *arg) {
         else if (strcmp(input, "pause") == 0) {
             cur_run_state = 0;
             if (debugger_set_run_state(cur_run_state))
-                printf("Error setting run_state: pause\n");
+                puts("Error setting run_state: pause");
         }
-        else if (strncmp(input, "step", 4) == 0) {
+        else if (memcmp(input, "step", 4) == 0) {
             if (cur_run_state == 2) {
-              printf("Cannot step while running. Type `pause' first.\n");
+              puts("Cannot step while running. Type `pause' first.");
               continue;
             }
 
-            debugger_steps_pending = 1;
-            sscanf(input, "step %d", &debugger_steps_pending);
+            if(sscanf(input, "step %d", &debugger_steps_pending) != 1)
+                debugger_steps_pending = 1;
+
             if (debugger_steps_pending < 1)
                 debugger_steps_pending = 1;
             --debugger_steps_pending;
@@ -245,7 +258,7 @@ void *debugger_loop(void *arg) {
         else if (strcmp(input, "pc-1") == 0) {
             printf("Previous PC: %08X\n", debugger_get_prev_pc());
         }
-        else if (strncmp(input, "asm", 3) == 0) {
+        else if (memcmp(input, "asm", 3) == 0) {
             // simple linear sweep disassembly
             uint32_t addr = cur_pc, size=1, flags=0;
 
@@ -279,7 +292,7 @@ void *debugger_loop(void *arg) {
                 printf("%s %s\n", op, args);
             }
         }
-        else if (strncmp(input, "mem", 3) == 0) {
+        else if (memcmp(input, "mem", 3) == 0) {
             uint32_t readAddr, length=1, rows=1, size=4;
             uint32_t i, j;
             char chSize;
@@ -301,7 +314,7 @@ void *debugger_loop(void *arg) {
             {
             }
             else if ((sscanf(input, "mem /%u%c %x", &length, &chSize, &readAddr) == 3 ||
-                      sscanf(input, "mem /%u%c %u", &length, &chSize, &readAddr) == 3) 
+                      sscanf(input, "mem /%u%c %u", &length, &chSize, &readAddr) == 3)
                      && (chSize == 'b' || chSize == 'h' || chSize == 'w' || chSize == 'd'))
             {
                 rows = 1;
@@ -351,10 +364,10 @@ void *debugger_loop(void *arg) {
                             break;
                     }
                 }
-                printf("\n");
+                putchar('\n');
             }
         }
-        else if (strncmp(input, "translate", 9) == 0) {
+        else if (memcmp(input, "translate", 9) == 0) {
             uint32_t virt_addr, phys_addr;
             if (sscanf(input, "translate %i", &virt_addr) == 1) {
             } else {
@@ -364,7 +377,7 @@ void *debugger_loop(void *arg) {
             phys_addr = (*DebugVirtualToPhysical)(virt_addr);
             printf("virtual 0x%08x -> physical 0x%08x\n", virt_addr, phys_addr);
         }
-        else if (strncmp(input, "write", 5) == 0) {
+        else if (memcmp(input, "write", 5) == 0) {
             uint32_t writeAddr, size=1;
             long long unsigned int writeVal;
             char chSize;
@@ -410,7 +423,7 @@ void *debugger_loop(void *arg) {
                 continue;
             }
 
-            printf("Breakpoints:\n");
+            puts("Breakpoints:");
             int i;
             unsigned int flags;
             for (i = 0; i < num_breakpoints; i++) {
@@ -431,10 +444,10 @@ void *debugger_loop(void *arg) {
 
                 if ((breakpoints[i].flags & M64P_BKP_FLAG_ENABLED) == 0)
                     printf(" (Disabled)");
-                printf("\n");
+                putchar('\n');
             }
         }
-        else if (strncmp(input, "bp add ", 7) == 0) {
+        else if (memcmp(input, "bp add ", 7) == 0) {
             uint32_t addr, size = 0, flags = M64P_BKP_FLAG_READ |
                                              M64P_BKP_FLAG_WRITE |
                                              M64P_BKP_FLAG_EXEC;
@@ -449,7 +462,7 @@ void *debugger_loop(void *arg) {
             }
 
             if (addr == 0) {
-                printf("Invalid breakpoint address.\n");
+                puts("Invalid breakpoint address.");
                 continue;
             }
 
@@ -462,7 +475,7 @@ void *debugger_loop(void *arg) {
             int numBkps =
                 (*DebugBreakpointCommand)(M64P_BKP_CMD_ADD_STRUCT, 0, &bkpt);
             if (numBkps == -1) {
-                printf("Maximum breakpoint limit already reached.\n");
+                puts("Maximum breakpoint limit already reached.");
                 continue;
             }
 
@@ -483,7 +496,7 @@ void *debugger_loop(void *arg) {
                 }
             }
         }
-        else if (strncmp(input, "bp trig", 7) == 0) {
+        else if (memcmp(input, "bp trig", 7) == 0) {
             uint32_t flags, addr;
             (*DebugBreakpointTriggeredBy)(&flags, &addr);
 
@@ -495,10 +508,10 @@ void *debugger_loop(void *arg) {
                        flags & M64P_BKP_FLAG_EXEC ? 'X' : ' ');
             }
         }
-        else if (strncmp(input, "bp rm ", 6) == 0) {
+        else if (memcmp(input, "bp rm ", 6) == 0) {
             int index = -1;
             unsigned int addr = 0;
-            if (strncmp(input, "bp rm 0x", 8) == 0) {
+            if (memcmp(input, "bp rm 0x", 8) == 0) {
                 sscanf(input, "bp rm 0x%X", &addr);
                 if (addr == 0)
                     sscanf(input, "bp rm 0x%x", &addr);
@@ -516,8 +529,8 @@ void *debugger_loop(void *arg) {
             }
 
             if (index == -1 || addr == 0) {
-                printf("Invalid value passed. ");
-                printf("Pass an address or breakpoint number.\n");
+                puts("Invalid value passed. "
+                    "Pass an address or breakpoint number.");
                 continue;
             }
 
@@ -526,8 +539,7 @@ void *debugger_loop(void *arg) {
             printf("Breakpoint [%d] 0x%08X removed.\n", index, addr);
 
             // Shift the array elements ahead of index down.
-            int j;
-            for (j = index + 1; j < num_breakpoints; j++) {
+            for (int j = index + 1; j < num_breakpoints; j++) {
                 breakpoints[j - 1] = breakpoints[j];
             }
 
@@ -536,10 +548,9 @@ void *debugger_loop(void *arg) {
             (*CoreDoCommand)(M64CMD_STOP, 0, NULL);
             break;
         }
-        else if (strlen(input) == 0)
-            continue;
-        else
-            printf("Unrecognized: %s\n", input);
+        else {
+            printf("Unrecognized command: '%s'\n", input);
+        }
     }
 
     return NULL;
