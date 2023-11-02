@@ -199,9 +199,10 @@ void *debugger_loop(void *arg) {
     (void) arg;
 
     while (1) {
-	    pthread_mutex_lock(&debugger_loop_lock);
-	    pthread_cond_signal(&debugger_loop_wait);
-	    pthread_mutex_unlock(&debugger_loop_lock);
+        size_t input_len;
+        pthread_mutex_lock(&debugger_loop_lock);
+        pthread_cond_signal(&debugger_loop_wait);
+        pthread_mutex_unlock(&debugger_loop_lock);
 
         printf("(dbg) ");
         if (fgets(input, sizeof(input), stdin) == NULL) {
