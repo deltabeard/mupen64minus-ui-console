@@ -83,7 +83,6 @@ extern ptr_ConfigGetUserCachePath      ConfigGetUserCachePath;
 #if ENABLE_DEBUGGER
 /* declarations of pointers to Core debugger functions */
 extern ptr_DebugSetCallbacks      DebugSetCallbacks;
-extern ptr_DebugSetCoreCompare    DebugSetCoreCompare;
 extern ptr_DebugSetRunState       DebugSetRunState;
 extern ptr_DebugGetState          DebugGetState;
 extern ptr_DebugStep              DebugStep;
@@ -102,13 +101,14 @@ extern ptr_DebugMemWrite32        DebugMemWrite32;
 extern ptr_DebugMemWrite16        DebugMemWrite16;
 extern ptr_DebugMemWrite8         DebugMemWrite8;
 
-extern ptr_DebugGetCPUDataPtr     DebugGetCPUDataPtr;
 extern ptr_DebugBreakpointLookup  DebugBreakpointLookup;
 extern ptr_DebugBreakpointCommand DebugBreakpointCommand;
 
 extern ptr_DebugBreakpointTriggeredBy DebugBreakpointTriggeredBy;
 extern ptr_DebugVirtualToPhysical     DebugVirtualToPhysical;
 #endif /* ENABLE_DEBUGGER */
+extern ptr_DebugSetCoreCompare    DebugSetCoreCompare;
+extern ptr_DebugGetCPUDataPtr     DebugGetCPUDataPtr;
 
 #endif /* #define CORE_INTERFACE_H */
 

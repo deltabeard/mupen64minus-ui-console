@@ -24,7 +24,7 @@
  */
 
 #if defined(__APPLE__)
-    #include <CoreFoundation/CoreFoundation.h>
+# include <CoreFoundation/CoreFoundation.h>
 #endif
 
 #include <stdio.h>
@@ -93,7 +93,6 @@ ptr_ConfigGetUserCachePath      ConfigGetUserCachePath = NULL;
 #if ENABLE_DEBUGGER
 /* definitions of pointers to Core debugger functions */
 ptr_DebugSetCallbacks      DebugSetCallbacks = NULL;
-ptr_DebugSetCoreCompare    DebugSetCoreCompare = NULL;
 ptr_DebugSetRunState       DebugSetRunState = NULL;
 ptr_DebugGetState          DebugGetState = NULL;
 ptr_DebugStep              DebugStep = NULL;
@@ -112,13 +111,15 @@ ptr_DebugMemWrite32        DebugMemWrite32 = NULL;
 ptr_DebugMemWrite16        DebugMemWrite16 = NULL;
 ptr_DebugMemWrite8         DebugMemWrite8 = NULL;
 
-ptr_DebugGetCPUDataPtr     DebugGetCPUDataPtr = NULL;
 ptr_DebugBreakpointLookup  DebugBreakpointLookup = NULL;
 ptr_DebugBreakpointCommand DebugBreakpointCommand = NULL;
 
 ptr_DebugBreakpointTriggeredBy DebugBreakpointTriggeredBy = NULL;
 ptr_DebugVirtualToPhysical     DebugVirtualToPhysical = NULL;
 #endif
+
+ptr_DebugSetCoreCompare    DebugSetCoreCompare = NULL;
+ptr_DebugGetCPUDataPtr     DebugGetCPUDataPtr = NULL;
 
 /* global variables */
 m64p_dynlib_handle CoreHandle = NULL;
@@ -287,7 +288,6 @@ m64p_error AttachCoreLib(const char *CoreLibFilepath)
 #if ENABLE_DEBUGGER
     /* get function pointers to the debugger functions */
     DebugSetCallbacks = (ptr_DebugSetCallbacks) osal_dynlib_getproc(CoreHandle, "DebugSetCallbacks");
-    DebugSetCoreCompare = (ptr_DebugSetCoreCompare) osal_dynlib_getproc(CoreHandle, "DebugSetCoreCompare");
     DebugSetRunState = (ptr_DebugSetRunState) osal_dynlib_getproc(CoreHandle, "DebugSetRunState");
     DebugGetState = (ptr_DebugGetState) osal_dynlib_getproc(CoreHandle, "DebugGetState");
     DebugStep = (ptr_DebugStep) osal_dynlib_getproc(CoreHandle, "DebugStep");
@@ -306,13 +306,15 @@ m64p_error AttachCoreLib(const char *CoreLibFilepath)
     DebugMemWrite16 = (ptr_DebugMemWrite16) osal_dynlib_getproc(CoreHandle, "DebugMemWrite16");
     DebugMemWrite8 = (ptr_DebugMemWrite8) osal_dynlib_getproc(CoreHandle, "DebugMemWrite8");
 
-    DebugGetCPUDataPtr = (ptr_DebugGetCPUDataPtr) osal_dynlib_getproc(CoreHandle, "DebugGetCPUDataPtr");
     DebugBreakpointLookup = (ptr_DebugBreakpointLookup) osal_dynlib_getproc(CoreHandle, "DebugBreakpointLookup");
     DebugBreakpointCommand = (ptr_DebugBreakpointCommand) osal_dynlib_getproc(CoreHandle, "DebugBreakpointCommand");
 
     DebugBreakpointTriggeredBy = (ptr_DebugBreakpointTriggeredBy) osal_dynlib_getproc(CoreHandle, "DebugBreakpointTriggeredBy");
     DebugVirtualToPhysical = (ptr_DebugVirtualToPhysical) osal_dynlib_getproc(CoreHandle, "DebugVirtualToPhysical");
 #endif
+    /* Used by compare_core to obtain the program counter. */
+    DebugSetCoreCompare = (ptr_DebugSetCoreCompare) osal_dynlib_getproc(CoreHandle, "DebugSetCoreCompare");
+    DebugGetCPUDataPtr = (ptr_DebugGetCPUDataPtr) osal_dynlib_getproc(CoreHandle, "DebugGetCPUDataPtr");
 
     return M64ERR_SUCCESS;
 }
@@ -360,7 +362,6 @@ m64p_error DetachCoreLib(void)
 
 #if ENABLE_DEBUGGER
     DebugSetCallbacks = NULL;
-    DebugSetCoreCompare = NULL;
     DebugSetRunState = NULL;
     DebugGetState = NULL;
     DebugStep = NULL;
@@ -379,13 +380,14 @@ m64p_error DetachCoreLib(void)
     DebugMemWrite16 = NULL;
     DebugMemWrite8 = NULL;
 
-    DebugGetCPUDataPtr = NULL;
     DebugBreakpointLookup = NULL;
     DebugBreakpointCommand = NULL;
 
     DebugBreakpointTriggeredBy = NULL;
     DebugVirtualToPhysical = NULL;
 #endif
+    DebugSetCoreCompare = NULL;
+    DebugGetCPUDataPtr = NULL;
 
     /* detach the shared library */
     osal_dynlib_close(CoreHandle);

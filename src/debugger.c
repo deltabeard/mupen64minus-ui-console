@@ -33,7 +33,7 @@
  */
 
 // General Purpose Register names
-const char *register_names[] = {
+static const char *register_names[] = {
     "$r0",
     "$at",
     "v0", "v1",
@@ -49,8 +49,8 @@ const char *register_names[] = {
 };
 
 // Holds the previous GPR values for comparison details.
-long long int prev_reg_values[32];
-char reg_ran_previously = 0;
+static long long int prev_reg_values[32];
+static char reg_ran_previously = 0;
 
 // Used to wait for core response before requesting next command.
 static pthread_cond_t debugger_loop_wait = PTHREAD_COND_INITIALIZER;
@@ -76,7 +76,7 @@ static void dbg_frontend_init(void) {
     pthread_t debugger_thread_id;
     /* Fork the debugger input thread. */
     pthread_create(&debugger_thread_id, NULL, debugger_loop, NULL);
-    printf("Debugger initialized.\n");
+    puts("Debugger initialized.");
 }
 
 static void dbg_frontend_update(unsigned int pc) {
@@ -103,7 +103,7 @@ static void dbg_frontend_vi(void) {
 /*
  * Debugger methods.
  */
-int debugger_setup_callbacks() {
+int debugger_setup_callbacks(void) {
     m64p_error rval = (*DebugSetCallbacks)(dbg_frontend_init,
                                            dbg_frontend_update,
                                            dbg_frontend_vi);
@@ -121,7 +121,7 @@ int debugger_step(void) {
 }
 
 // Retrieve the program counter.
-static int debugger_get_prev_pc() {
+static int debugger_get_prev_pc(void) {
     return (*DebugGetState)(M64P_DBG_PREVIOUS_PC);
 }
 
@@ -152,15 +152,16 @@ static void debugger_write_8(unsigned int addr, unsigned char value) {
 }
 
 static int debugger_print_registers(void) {
-    unsigned long long int *regs = (unsigned long long int *) (*DebugGetCPUDataPtr)(M64P_CPU_REG_REG);
+    const char *format_padded = "%4s %016llX ";
+    const char *format_nopad = "%4s %16llX ";
+    unsigned long long int *regs;
+
+    regs = (unsigned long long int *) (*DebugGetCPUDataPtr)(M64P_CPU_REG_REG);
     if (regs == NULL)
         return -1;
 
-    printf("General Purpose Registers:\n");
-    int i;
-    const char *format_padded = "%4s %016llX ";
-    const char *format_nopad = "%4s %16llX ";
-    for (i = 0; i < 32; ++i) {
+    puts("General Purpose Registers:");
+    for (int i = 0; i < 32; ++i) {
         char val_changed = reg_ran_previously && regs[i] != prev_reg_values[i];
 
         // Use bold font if the value has changed since last time.
@@ -180,7 +181,7 @@ static int debugger_print_registers(void) {
 
         // Two registers per line.
         if (i % 2 != 0)
-            printf("\n");
+            putchar('\n');
     }
     return 0;
 }
@@ -204,7 +205,7 @@ void *debugger_loop(void *arg) {
         pthread_cond_signal(&debugger_loop_wait);
         pthread_mutex_unlock(&debugger_loop_lock);
 
-        printf("(dbg) ");
+        fputs("(dbg) ", stdout);
         if (fgets(input, sizeof(input), stdin) == NULL) {
             puts("Error obtaining input from stdin.");
             break;
