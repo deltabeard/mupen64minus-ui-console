@@ -710,12 +710,15 @@ static m64p_error ParseCommandLineMain(int argc, const char **argv)
             /* skip this: it will be handled in ParseCommandLinePlugin */
             i++;
         }
-#if ENABLE_DEBUGGER
         else if (strcmp(argv[i], "--debug") == 0)
         {
+#if ENABLE_DEBUGGER
             l_LaunchDebugger = 1;
-        }
+#else
+            DebugMessage(M64MSG_ERROR, "Console not built with debugger support");
+            return M64ERR_INPUT_INVALID;
 #endif
+        }
         else if (strcmp(argv[i], "--core-compare-send") == 0)
         {
             l_CoreCompareMode = 1;
