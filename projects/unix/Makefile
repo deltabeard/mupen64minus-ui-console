@@ -1,3 +1,4 @@
+# vi: set shiftwidth=4 tabstop=4 expandtab:
 #/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 # *   Mupen64plus - Makefile                                                *
 # *   Mupen64Plus homepage: https://mupen64plus.org/                        *
@@ -20,139 +21,85 @@
 # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 # Makefile for Mupen64plus-ui-console
 
-# detect operation system
-UNAME ?= $(shell uname -s)
-OS := NONE
-ifeq ("$(UNAME)","Linux")
-  OS = LINUX
-endif
-ifeq ("$(UNAME)","linux")
-  OS = LINUX
-endif
-ifneq ("$(filter GNU hurd,$(UNAME))","")
-  OS = LINUX
-endif
-ifeq ("$(UNAME)","Darwin")
-  OS = OSX
-endif
-ifeq ("$(UNAME)","FreeBSD")
-  OS = FREEBSD
-endif
-ifeq ("$(UNAME)","OpenBSD")
-  OS = FREEBSD
-endif
-ifneq ("$(filter GNU/kFreeBSD kfreebsd,$(UNAME))","")
-  OS = LINUX
-endif
-ifeq ("$(patsubst MINGW%,MINGW,$(UNAME))","MINGW")
-  OS = MINGW
-endif
-ifeq ("$(OS)","NONE")
-  $(error OS type "$(UNAME)" not supported.  Please file bug report at 'https://github.com/mupen64plus/mupen64plus-core/issues')
-endif
+define help_txt
+Mupen64plus-ui-console is licensed under the terms of the GPLv2+.
+Available options and their descriptions when enabled:
 
-# detect system architecture, only if it matters for build flags
-HOST_CPU ?= $(shell uname -m)
-CPU := OTHER
-ifneq ("$(filter x86_64 amd64,$(HOST_CPU))","")
-  CPU := X86
-  ifeq ("$(BITS)", "32")
-    ARCH_DETECTED := 64BITS_32
-  else
-    ARCH_DETECTED := 64BITS
-  endif
-endif
-ifneq ("$(filter pentium i%86,$(HOST_CPU))","")
-  CPU := X86
-  ARCH_DETECTED := 32BITS
-endif
+  Targets:
+    all            == Build Mupen64Plus console front-end application (default)
+    clean          == remove object files and build products
+    install        == Install Mupen64Plus console front-end application
+    uninstall      == Uninstall Mupen64Plus console front-end application
+  Options:
+    COREDIR=path   == default path to search for Mupen64Plus Core (must end with slash)
+    PLUGINDIR=path == default path to search for plugins
+    SHAREDIR=path  == default path to search for shared data files
+    APIDIR=path    == path to find Mupen64Plus Core headers
+    OPTFLAGS=flags == compiler optimization (default: -O3 -flto)
+    WARNFLAGS=flag == compiler warning levels (default: -Wall)
+  Install Options:
+    PREFIX=path    == install/uninstall prefix (default: /usr/local/)
+    BINDIR=path    == path to install mupen64plus binary (default: PREFIX/bin/)
+    MANDIR=path    == path to install mupen64plus manual page (default: PREFIX/share/man)
+    APPSDIR=path   == path to install desktop file (default: PREFIX/share/applications)
+    ICONSDIR=path  == path to install icon files (default: PREFIX/share/icons/hicolor)
+    DESTDIR=path   == path to prepend to all installation paths (only for packagers)
+  Debugging Options:
+    DEBUG=(1|0)    == add debugging symbols to application binary
+    DEBUGGER=(1|0) == enable debugging capability
+
+  Build options are currently set to:
+    COREDIR="$(COREDIR)"
+    PLUGINDIR="$(PLUGINDIR)"
+    SHAREDIR="$(SHAREDIR)"
+    APIDIR="$(APIDIR)"
+    OPTFLAGS="$(OPTFLAGS)"
+    WARNFLAGS="$(WARNFLAGS)"
+
+    PREFIX="$(PREFIX)"
+    BINDIR="$(BINDIR)"
+    MANDIR="$(MANDIR)"
+    APPSDIR="$(APPSDIR)"
+    ICONSDIR="$(ICONSDIR)"
+    DESTDIR="$(DESTDIR)"
+
+    DEBUG=$(DEBUG)
+    DEBUGGER=$(DEBUGGER)
+
+  Example: make DEBUG=1 OPTFLAGS="-Ofast -march=native"
+endef
 
 SRCDIR = ../../src
-OBJDIR = _obj$(POSTFIX
+OBJDIR = _obj
 
-# base CFLAGS, LDLIBS, and LDFLAGS
-OPTFLAGS ?= -O3 -flto
-WARNFLAGS ?= -Wall
+# User-configurable build parameters
+DEBUGGER := 0
+DEBUG := 0
+OPTFLAGS := -Ofast -flto
+WARNFLAGS := -Wall -Wextra -fsanitize=undefined -fsanitize-trap
 
-CFLAGS += $(OPTFLAGS) $(WARNFLAGS) -ffast-math -fno-strict-aliasing -I$(SRCDIR)
-ifeq ($(OS), MINGW)
-  CFLAGS += -lpthread
-  LDLIBS += -lpthread
-else
-  ifneq ($(OS), OSX)
-    CFLAGS += -pthread
-    LDLIBS += -pthread
-  endif
-endif
+# set base program pointers and flags
+RM	?= rm -f
+INSTALL	?= install
+MKDIR	?= mkdir -p
 
-# set special flags per-system
-ifeq ($(OS), LINUX)
-  LDLIBS += -ldl
-endif
-ifeq ($(OS), OSX)
-  OSX_SDK_PATH = $(shell xcrun --sdk macosx --show-sdk-path)
-  LDLIBS += -framework CoreFoundation
-
-  ifeq ($(CPU), X86)
-    ifeq ($(ARCH_DETECTED), 64BITS)
-      CFLAGS += -pipe -arch x86_64 -mmacosx-version-min=10.6 -isysroot $(OSX_SDK_PATH)
-    else
-      CFLAGS += -pipe -mmmx -msse -fomit-frame-pointer -arch i686 -mmacosx-version-min=10.6 -isysroot $(OSX_SDK_PATH)
-    endif
-  endif
-endif
-
-# test for presence of SDL
-#ifeq ($(origin SDL_CFLAGS) $(origin SDL_LDLIBS), undefined undefined)
-#  SDL_CONFIG = $(CROSS_COMPILE)sdl2-config
-#  ifeq ($(shell which $(SDL_CONFIG) 2>/dev/null),)
-#    SDL_CONFIG = $(CROSS_COMPILE)sdl-config
-#    ifeq ($(shell which $(SDL_CONFIG) 2>/dev/null),)
-#      $(error No SDL development libraries found!)
-#    else
-#      $(warning Using SDL 1.2 libraries)
-#    endif
-#  endif
-#  SDL_CFLAGS  += $(shell $(SDL_CONFIG) --cflags)
-#  SDL_LDLIBS += $(shell $(SDL_CONFIG) --libs)
-#endif
-#CFLAGS += $(SDL_CFLAGS)
-#LDLIBS += $(SDL_LDLIBS)
-
-ifeq ($(OS), MINGW)
-  LDLIBS += -mconsole
-endif
+# set installation options
+PREFIX := /usr/local
+LIBDIR := $(PREFIX)/lib
+BINDIR := $(PREFIX)/bin
+MANDIR := $(PREFIX)/share/man
+APPSDIR := $(PREFIX)/share/applications
+ICONSDIR := $(PREFIX)/share/icons/hicolor
 
 ifeq ($(BIG_ENDIAN), 1)
   CFLAGS += -DM64P_BIG_ENDIAN
-endif
-
-# tweak flags for 32-bit build on 64-bit system
-ifeq ($(ARCH_DETECTED), 64BITS_32)
-  ifeq ($(OS), FREEBSD)
-    $(error Do not use the BITS=32 option with FreeBSD, use -m32 and -m elf_i386)
-  endif
-  ifneq ($(OS), OSX)
-    ifeq ($(OS), MINGW)
-      LDFLAGS += -Wl,-m,i386pe
-    else
-      CFLAGS += -m32
-      LDFLAGS += -Wl,-m,elf_i386
-    endif
-  endif
-endif
-
-ifeq ($(ARCH_DETECTED), 64BITS)
-  ifeq ($(OS), MINGW)
-    LDFLAGS += -Wl,-m,i386pep
-  endif
 endif
 
 # set mupen64plus core API header path
 ifneq ("$(APIDIR)","")
   CFLAGS += "-I$(APIDIR)"
 else
-  TRYDIR = ../../../mupen64plus-core/src/api
+  TRYDIR = ../../../mupen64minus-core/src/api
   ifneq ("$(wildcard $(TRYDIR)/m64p_types.h)","")
     CFLAGS += -I$(TRYDIR)
   else
@@ -168,67 +115,6 @@ else
       endif
     endif
   endif
-endif
-
-# reduced compile output when running make without V=1
-ifneq ($(findstring $(MAKEFLAGS),s),s)
-ifndef V
-	Q_CC  = @echo '    CC  '$@;
-	Q_LD  = @echo '    LD  '$@;
-endif
-endif
-
-# set base program pointers and flags
-CC        = $(CROSS_COMPILE)gcc
-CXX       = $(CROSS_COMPILE)g++
-RM       ?= rm -f
-INSTALL  ?= install
-MKDIR ?= mkdir -p
-COMPILE.c = $(Q_CC)$(CC) $(CFLAGS) $(CPPFLAGS) $(TARGET_ARCH) -c
-LINK.o = $(Q_LD)$(CC) $(CFLAGS) $(LDFLAGS) $(TARGET_ARCH)
-
-ifndef PIE
-  ifeq ($(CC),$(CROSS_COMPILE)gcc)
-    # check if PIE is the default for the compiler
-    PIE_DEFAULT = $(shell $(CC) -v 2>&1 | grep enable-default-pie)
-    ifeq ($(PIE_DEFAULT),)
-      PIE = 1
-    endif
-  endif
-endif
-
-ifdef PIE
-  ifeq ($(PIE), 1)
-    CFLAGS += -fPIE
-    LDFLAGS += -pie
-  else
-    ifeq ($(PIE), 0)
-      CFLAGS += -fno-PIE
-      LDFLAGS += -no-pie
-    else
-      $(error Invalid PIE value.)
-    endif
-  endif
-endif
-
-# set installation options
-ifeq ($(PREFIX),)
-  PREFIX := /usr/local
-endif
-ifeq ($(LIBDIR),)
-  LIBDIR := $(PREFIX)/lib
-endif
-ifeq ($(BINDIR),)
-  BINDIR := $(PREFIX)/bin
-endif
-ifeq ($(MANDIR),)
-  MANDIR := $(PREFIX)/share/man
-endif
-ifeq ($(APPSDIR),)
-  APPSDIR := $(PREFIX)/share/applications
-endif
-ifeq ($(ICONSDIR),)
-  ICONSDIR := $(PREFIX)/share/icons/hicolor
 endif
 
 # set special flags for given Makefile parameters
@@ -247,7 +133,7 @@ ifneq ($(SHAREDIR),)
   CFLAGS += '-DSHAREDIR="$(SHAREDIR)"'
 endif
 ifeq ($(DEBUG),1)
-  CFLAGS += -g
+  OPTFLAGS := -g3 -O0
   INSTALL_STRIP_FLAG ?= 
 else
   INSTALL_STRIP_FLAG ?= -s
@@ -256,15 +142,6 @@ ifeq ($(DEBUGGER),1)
   CFLAGS += -DENABLE_DEBUGGER=1
 else
   CFLAGS += -DENABLE_DEBUGGER=0
-endif
-
-SRCDIR = ../../src
-OBJDIR = _obj$(POSTFIX)
-
-ifeq ("$(OS)","MINGW")
-  EXEEXT = .exe
-else
-  EXEEXT =
 endif
 
 # list of source files to compile
@@ -279,7 +156,7 @@ ifeq ($(DEBUGGER), 1)
 	SOURCE += $(SRCDIR)/debugger.c
 endif
 
-ifeq ($(OS), MINGW)
+ifeq ($(OS),Windows_NT)
 SOURCE += \
 	$(SRCDIR)/osal_dynamiclib_win32.c \
 	$(SRCDIR)/osal_files_win32.c
@@ -287,6 +164,7 @@ else
 SOURCE += \
 	$(SRCDIR)/osal_dynamiclib_unix.c \
 	$(SRCDIR)/osal_files_unix.c
+LDLIBS += -ldl
 endif
 
 # generate a list of object files build, make a temporary directory for them
@@ -295,43 +173,22 @@ OBJDIRS = $(dir $(OBJECTS))
 $(shell $(MKDIR) $(OBJDIRS))
 
 # build targets
-TARGET = mupen64plus$(POSTFIX)$(EXEEXT)
+TARGET = mupen64plus
 
-targets:
-	@echo "Mupen64Plus-ui-console makefile."
-	@echo "  Targets:"
-	@echo "    all            == Build Mupen64Plus console front-end application"
-	@echo "    clean          == remove object files and build products"
-	@echo "    rebuild        == clean and re-build all"
-	@echo "    install        == Install Mupen64Plus console front-end application"
-	@echo "    uninstall      == Uninstall Mupen64Plus console front-end application"
-	@echo "  Options:"
-	@echo "    COREDIR=path   == default path to search for Mupen64Plus Core (must end with slash)"
-	@echo "    PLUGINDIR=path == default path to search for plugins"
-	@echo "    SHAREDIR=path  == default path to search for shared data files"
-	@echo "    APIDIR=path    == path to find Mupen64Plus Core headers"
-	@echo "    OPTFLAGS=flags == compiler optimization (default: -O3 -flto)"
-	@echo "    WARNFLAGS=flag == compiler warning levels (default: -Wall)"
-	@echo "    PIE=(1|0)      == Force enable/disable of position independent executables"
-	@echo "    POSTFIX=name  == String added to the name of the the build (default: '')"
-	@echo "  Install Options:"
-	@echo "    PREFIX=path    == install/uninstall prefix (default: /usr/local/)"
-	@echo "    BINDIR=path    == path to install mupen64plus binary (default: PREFIX/bin/)"
-	@echo "    MANDIR=path    == path to install mupen64plus manual page (default: PREFIX/share/man)"
-	@echo "    APPSDIR=path   == path to install desktop file (default: PREFIX/share/applications)"
-	@echo "    ICONSDIR=path  == path to install icon files (default: PREFIX/share/icons/hicolor)"
-	@echo "    DESTDIR=path   == path to prepend to all installation paths (only for packagers)"
-	@echo "  Debugging Options:"
-	@echo "    DEBUG=1        == add debugging symbols to application binary"
-	@echo "    DEBUGGER=1     == enable debugging capability"
-	@echo "    V=1            == show verbose compiler output"
+# build dependency files
+CFLAGS += -MD -MP
+-include $(OBJECTS:.o=.d)
+
+CFLAGS += -pthread $(OPTFLAGS) $(WARNFLAGS) -I$(SRCDIR)
 
 all: $(TARGET)
 
 clean:
 	$(RM) -r $(OBJDIR) $(TARGET)
 
-rebuild: clean all
+help:
+	$(info $(help_txt))
+	@cd
 
 install: $(TARGET)
 	$(INSTALL) -d "$(DESTDIR)$(BINDIR)"
@@ -345,23 +202,17 @@ install: $(TARGET)
 	$(INSTALL) -d "$(DESTDIR)$(ICONSDIR)/scalable/apps"
 	$(INSTALL) -m 0644 $(SRCDIR)/../data/icons/scalable/apps/mupen64plus.svg "$(DESTDIR)$(ICONSDIR)/scalable/apps"
 
-
 uninstall:
 	$(RM) "$(DESTDIR)$(BINDIR)/$(TARGET)" "$(DESTDIR)$(MANDIR)/man6/mupen64plus.6"
 	$(RM) "$(DESTDIR)$(APPSDIR)/mupen64plus.desktop"
 	$(RM) "$(DESTDIR)$(ICONSDIR)/48x48/apps/mupen64plus.png"
 	$(RM) "$(DESTDIR)$(ICONSDIR)/scalable/apps/mupen64plus.svg"
 
-
-# build dependency files
-CFLAGS += -MD -MP
--include $(OBJECTS:.o=.d)
-
 # standard build rules
 $(OBJDIR)/%.o: $(SRCDIR)/%.c
-	$(COMPILE.c) -o $@ $<
+	$(CC) $(CFLAGS) $(CPPFLAGS) -c -o $@ $<
 
 $(TARGET): $(OBJECTS)
-	$(LINK.o) $^ $(LOADLIBES) $(LDLIBS) -o $@
+	$(CC) $(CFLAGS) $(LDFLAGS) $^ $(LDLIBS) -o $@
 
-.PHONY: all clean install uninstall targets
+.PHONY: all clean install uninstall help
