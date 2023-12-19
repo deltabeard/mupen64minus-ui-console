@@ -1028,7 +1028,7 @@ int main(int argc, char *argv[])
         return 8;
     }
     fseek(fPtr, 0L, SEEK_SET);
-    unsigned char *ROM_buffer = (unsigned char *) malloc(romlength);
+    unsigned char *ROM_buffer = malloc(romlength);
     if (ROM_buffer == NULL)
     {
         DebugMessage(M64MSG_ERROR, "couldn't allocate %li-byte buffer for ROM image file '%s'.", romlength, l_ROMFilepath);
