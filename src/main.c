@@ -925,7 +925,9 @@ static m64p_media_loader l_media_loader =
 
 int main(int argc, char *argv[])
 {
+    FILE *fPtr;
     int i;
+    long romlength;
 
     printf(" __  __                         __   _  _   ____  _             \n"
         "|  \\/  |_   _ _ __   ___ _ __  / /_ | || | |  _ \\| |_   _ ___ \n"
@@ -1004,7 +1006,7 @@ int main(int argc, char *argv[])
         SaveConfigurationOptions();
 
     /* load ROM image */
-    FILE *fPtr = fopen(l_ROMFilepath, "rb");
+    fPtr = fopen(l_ROMFilepath, "rb");
     if (fPtr == NULL)
     {
         DebugMessage(M64MSG_ERROR, "couldn't open ROM file '%s' for reading.", l_ROMFilepath);
@@ -1014,9 +1016,17 @@ int main(int argc, char *argv[])
     }
 
     /* get the length of the ROM, allocate memory buffer, load it from disk */
-    long romlength = 0;
     fseek(fPtr, 0L, SEEK_END);
     romlength = ftell(fPtr);
+    if (romlength < 0)
+    {
+        DebugMessage(M64MSG_ERROR, "could not obtain size of ROM image file '%s': %s",
+            l_ROMFilepath, strerror(errno));
+        fclose(fPtr);
+        (*CoreShutdown)();
+        DetachCoreLib();
+        return 8;
+    }
     fseek(fPtr, 0L, SEEK_SET);
     unsigned char *ROM_buffer = (unsigned char *) malloc(romlength);
     if (ROM_buffer == NULL)
