@@ -1037,7 +1037,7 @@ int main(int argc, char *argv[])
         DetachCoreLib();
         return 8;
     }
-    else if (fread(ROM_buffer, 1, romlength, fPtr) != romlength)
+    if (fread(ROM_buffer, 1, romlength, fPtr) != (size_t)romlength)
     {
         DebugMessage(M64MSG_ERROR, "couldn't read %li bytes from ROM image file '%s'.", romlength, l_ROMFilepath);
         free(ROM_buffer);
