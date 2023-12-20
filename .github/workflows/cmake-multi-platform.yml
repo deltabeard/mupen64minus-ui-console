@@ -78,7 +78,7 @@ jobs:
       run: cmake --build ${{ steps.strings.outputs.build-output-dir }} --config ${{ matrix.build_type }}
 
     - name: Package
-      run: cpack --config ${{ steps.strings.outputs.build-output-dir }}/CPackConfig.cmake -G 7Z
+      run: cpack -C ${{ matrix.build_type }} --config ${{ steps.strings.outputs.build-output-dir }}/CPackConfig.cmake -G 7Z
       
     - name: Upload artifact
       uses: actions/upload-artifact@v3
