@@ -59,6 +59,7 @@ jobs:
 
     - name: Set reusable strings
       id: strings
+      shell: bash
       run: |
         echo "build-output-dir=${{ github.workspace }}/build" >> "$GITHUB_OUTPUT"
         echo "sha-short=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
