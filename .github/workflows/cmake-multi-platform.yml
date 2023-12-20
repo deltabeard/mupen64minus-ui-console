@@ -58,11 +58,11 @@ jobs:
         path: 'mupen64minus-core'
 
     - name: Set reusable strings
-      # Turn repeated input strings (such as the build output directory) into step outputs. These step outputs can be used throughout the workflow file.
       id: strings
       shell: bash
       run: |
-        echo "build-output-dir=${{ github.workspace }}/build" >> "$GITHUB_OUTPUT"
+        echo "::set-output name=build-output-dir::${{ github.workspace }}/build"
+        echo "::set-output name=sha-short::$(git rev-parse --short HEAD)"
 
     - name: Configure CMake
       run: >
@@ -83,5 +83,5 @@ jobs:
     - name: Upload artifact
       uses: actions/upload-artifact@v3
       with:
-        name: mupen64minus-ui-console-${{ matrix.os }}-${{ matrix.c_compiler }}-g${{ env.G_REV }}
+        name: mupen64minus-ui-console-${{ matrix.os }}-${{ matrix.c_compiler }}-${{ steps.strings.outputs.sha-short }}
         path: ./*.7z
