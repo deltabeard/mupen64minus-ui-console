@@ -65,7 +65,11 @@ IF(NOT EXISTS "${M64API_DIR_fullpath}")
     MESSAGE(FATAL_ERROR "Mupen64 API directory '${M64API_DIR_fullpath}' does not exist.")
 ENDIF()
 
-ADD_EXECUTABLE(mupen64minus-ui-console
+IF(NOT ${CMAKE_BUILD_TYPE} STREQUAL "Debug" AND APPLE)
+    SET(EXE_TARGET_TYPE MACOSX_BUNDLE)
+    MESSAGE(VERBOSE "Setting EXE type to MACOSX Bundle")
+ENDIF()
+ADD_EXECUTABLE(mupen64minus-ui-console ${EXE_TARGET_TYPE}
     ./src/cheat.c
     ./src/compare_core.c
     ./src/core_interface.c
