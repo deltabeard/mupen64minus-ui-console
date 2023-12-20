@@ -78,10 +78,10 @@ jobs:
       run: cmake --build ${{ steps.strings.outputs.build-output-dir }} --config ${{ matrix.build_type }}
 
     - name: Package
-      run: cpack -C ${{ matrix.build_type }} --config ${{ steps.strings.outputs.build-output-dir }}/CPackConfig.cmake -G 7Z
+      run: cpack -C ${{ matrix.build_type }} --config ${{ steps.strings.outputs.build-output-dir }}/CPackConfig.cmake -G 7Z --verbose
       
     - name: Upload artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: mupen64minus-ui-console-${{ matrix.os }}-${{ matrix.c_compiler }}-${{ steps.strings.outputs.sha-short }}
         path: ./*.7z
