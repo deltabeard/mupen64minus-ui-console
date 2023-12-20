@@ -30,8 +30,6 @@ jobs:
             c_compiler: cl
           - os: ubuntu-latest
             c_compiler: gcc
-          - os: ubuntu-latest
-            c_compiler: clang
           - os: macos-latest
             c_compiler: clang
 
@@ -62,7 +60,7 @@ jobs:
       run: cmake --build ${{ steps.strings.outputs.build-output-dir }} --config ${{ matrix.build_type }}
 
     - name: Install
-      run: cmake --install ${{ steps.strings.outputs.build-output-dir }} --prefix out
+      run: cmake --install ${{ steps.strings.outputs.build-output-dir }} --config ${{ matrix.build_type }} --prefix out
       
     - name: Upload artifact
       uses: actions/upload-artifact@v4

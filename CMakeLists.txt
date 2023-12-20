@@ -14,7 +14,40 @@ ELSE()
     ENDIF()
 ENDIF()
 
+# Obtain the version of project that is being built.
+FIND_PACKAGE(Git)
+IF(GIT_FOUND)
+    EXECUTE_PROCESS(
+            COMMAND ${GIT_EXECUTABLE} describe --tags --long --always --dirty=-dirty
+            WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+            RESULT_VARIABLE PROC_RESULT
+            OUTPUT_VARIABLE FULL_VERSION
+            ERROR_QUIET
+            OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+    EXECUTE_PROCESS(
+            COMMAND ${GIT_EXECUTABLE} describe --abbrev=0 --tags
+            WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+            RESULT_VARIABLE PROC_RESULT
+            OUTPUT_VARIABLE LAST_TAG
+            ERROR_QUIET
+            OUTPUT_STRIP_TRAILING_WHITESPACE)
+ENDIF()
+IF(NOT GIT_FOUND OR NOT PROC_RESULT EQUAL 0)
+    # If git is not available on the build platform, use this as a fallback.
+    SET(LAST_TAG 2.5.9)
+    SET(FULL_VERSION ${LAST_TAG}-LOCAL)
+ENDIF()
+MESSAGE(STATUS "Configuring version ${FULL_VERSION}")
+
 PROJECT(mupen64minus-ui-console LANGUAGES C VERSION 2.5.9)
+# Initialise project information.
+PROJECT(mupen64minus-ui-console
+        LANGUAGES C
+        VERSION ${LAST_TAG}
+        DESCRIPTION "mupen64minus console front-end"
+        HOMEPAGE_URL "https://github.com/deltabeard/mupen64minus-ui-console")
+SET(PROJECT_LICENSE "GPL-2.0")
 
 FIND_PACKAGE(Threads)
 message(CHECK_START "Checking Thread support")
@@ -68,7 +101,20 @@ IF(m64_disabled_features)
 ENDIF()
 
 INCLUDE(CPack)
-INSTALL(TARGETS mupen64minus-ui-console RUNTIME)
+# Package options
+IF(APPLE)
+    SET_TARGET_PROPERTIES(${PROJECT_NAME} PROPERTIES
+            MACOSX_BUNDLE_BUNDLE_NAME ${PROJECT_NAME}
+            MACOSX_BUNDLE_BUNDLE_VERSION ${LAST_TAG}
+            MACOSX_BUNDLE_COPYRIGHT ${PROJECT_LICENSE}
+            MACOSX_BUNDLE_INFO_STRING ${PROJECT_DESCRIPTION}
+            MACOSX_BUNDLE_SHORT_VERSION_STRING ${FULL_VERSION}
+            MACOSX_BUNDLE_LONG_VERSION_STRING ${FULL_VERSION})
+    INSTALL(TARGETS mupen64minus-ui-console BUNDLE
+        DESTINATION ${CMAKE_INSTALL_BINDIR}/${PROJECT_NAME})
+ELSE()
+    INSTALL(TARGETS mupen64minus-ui-console RUNTIME)
+ENDIF()
 INSTALL(FILES
 		${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/${CMAKE_PROJECT_NAME}.pdb
 		${CMAKE_BINARY_DIR}/${CMAKE_PROJECT_NAME}.pdb
