@@ -59,10 +59,9 @@ jobs:
 
     - name: Set reusable strings
       id: strings
-      shell: bash
       run: |
-        echo "::set-output name=build-output-dir::${{ github.workspace }}/build"
-        echo "::set-output name=sha-short::$(git rev-parse --short HEAD)"
+        echo "build-output-dir=${{ github.workspace }}/build" >> "$GITHUB_OUTPUT"
+        echo "sha-short=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
 
     - name: Configure CMake
       run: >
