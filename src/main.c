@@ -26,6 +26,7 @@
  * for Mupen64Plus v2.0.
  */
 
+#include <errno.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
