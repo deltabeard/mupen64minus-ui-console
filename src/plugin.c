@@ -23,7 +23,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#if defined(__APPLE__)
+#if defined(__APPLE__) && 0
     #include <CoreFoundation/CoreFoundation.h>
 #endif
 
@@ -129,7 +129,7 @@ m64p_error PluginSearchLoad(m64p_handle ConfigUI)
     }
 
     /* for MacOS, look for plugins in the Frameworks folder of the app bundle */
-#if defined(__APPLE__)
+#if defined(__APPLE__) && 0
     if (lib_filelist == NULL)
     {
         CFBundleRef mainBundle = CFBundleGetMainBundle();
