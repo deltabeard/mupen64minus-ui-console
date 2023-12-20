@@ -1,6 +1,5 @@
 # vim: ts=4:sw=4:expandtab
 CMAKE_MINIMUM_REQUIRED(VERSION 3.18...3.28)
-INCLUDE(CMakeDependentOption)
 
 ## Check user set options.
 IF(NOT CMAKE_BUILD_TYPE)
@@ -67,3 +66,6 @@ TARGET_INCLUDE_DIRECTORIES(mupen64minus-ui-console PRIVATE ${M64API_DIR})
 IF(m64_disabled_features)
     MESSAGE(STATUS "Disabled features: ${m64_disabled_features}")
 ENDIF()
+
+INCLUDE(CPack)
+INSTALL(TARGETS mupen64minus-ui-console RUNTIME)
