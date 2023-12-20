@@ -23,7 +23,7 @@
  * library and pointers to the core functions
  */
 
-#if defined(__APPLE__)
+#if defined(__APPLE__) && 0
 # include <CoreFoundation/CoreFoundation.h>
 #endif
 
@@ -146,7 +146,7 @@ m64p_error AttachCoreLib(const char *CoreLibFilepath)
     }
 #endif
     /* for MacOS, look for the library in the Frameworks folder of the app bundle */
-#if defined(__APPLE__)
+#if defined(__APPLE__) && 0
     CFBundleRef mainBundle = CFBundleGetMainBundle();
     if (mainBundle != NULL)
     {
