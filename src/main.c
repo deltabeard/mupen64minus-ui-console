@@ -26,6 +26,7 @@
  * for Mupen64Plus v2.0.
  */
 
+#include <assert.h>
 #include <errno.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -100,15 +101,15 @@ static char      *l_CheatNumList = NULL;
 
 void DebugMessage(int level, const char *message, ...)
 {
-  char msgbuf[1024];
-  va_list args;
+    char msgbuf[1024];
+    va_list args;
 
-  va_start(args, message);
-  vsnprintf(msgbuf, 1024, message, args);
+    va_start(args, message);
+    vsnprintf(msgbuf, 1024, message, args);
 
-  DebugCallback("UI-Console", level, msgbuf);
+    DebugCallback("UI-Console", level, msgbuf);
 
-  va_end(args);
+    va_end(args);
 }
 
 void DebugCallback(void *Context, int level, const char *message)
@@ -171,57 +172,17 @@ static void FrameCallback(unsigned int FrameIndex)
 #endif
 }
 
-static char *formatstr(const char *fmt, ...) ATTR_FMT(1, 2);
-
-char *formatstr(const char *fmt, ...)
-{
-	int size = 128, ret;
-	char *str = (char *)malloc(size), *newstr;
-	va_list args;
-
-	/* There are two implementations of vsnprintf we have to deal with:
-	 * C99 version: Returns the number of characters which would have been written
-	 *              if the buffer had been large enough, and -1 on failure.
-	 * Windows version: Returns the number of characters actually written,
-	 *                  and -1 on failure or truncation.
-	 * NOTE: An implementation equivalent to the Windows one appears in glibc <2.1.
-	 */
-	while (str != NULL)
-	{
-		va_start(args, fmt);
-		ret = vsnprintf(str, size, fmt, args);
-		va_end(args);
-
-		// Successful result?
-		if (ret >= 0 && ret < size)
-			return str;
-
-		// Increment the capacity of the buffer
-		if (ret >= size)
-			size = ret + 1; // C99 version: We got the needed buffer size
-		else
-			size *= 2; // Windows version: Keep guessing
-
-		newstr = (char *)realloc(str, size);
-		if (newstr == NULL)
-			free(str);
-		str = newstr;
-	}
-
-	return NULL;
-}
-
-static int is_path_separator(char c)
+static inline int is_path_separator(char c)
 {
     return strchr(OSAL_DIR_SEPARATORS, c) != NULL;
 }
 
-char* combinepath(const char* first, const char *second)
+static int combinepath(char *out, size_t sz, const char *first, const char *second)
 {
     size_t len_first, off_second = 0;
 
-    if (first == NULL || second == NULL)
-        return NULL;
+    assert(first != NULL);
+    assert(second != NULL);
 
     len_first = strlen(first);
 
@@ -231,7 +192,7 @@ char* combinepath(const char* first, const char *second)
     while (is_path_separator(second[off_second]))
         off_second++;
 
-    return formatstr("%.*s%c%s", (int) len_first, first, OSAL_DIR_SEPARATORS[0], second + off_second);
+    return snprintf(out, sz, "%.*s%c%s", (int) len_first, first, OSAL_DIR_SEPARATORS[0], second + off_second);
 }
 
 
@@ -823,7 +784,7 @@ static char* media_loader_get_filename(void* cb_data, m64p_handle section_handle
     m64p_handle core_config;
     char value[4096];
     const char* configdir = NULL;
-    char* cfgfilepath = NULL;
+    char cfgfilepath[4096];
 
     /* reset filename */
     char* mem_filename = NULL;
@@ -831,19 +792,18 @@ static char* media_loader_get_filename(void* cb_data, m64p_handle section_handle
     /* XXX: use external config API to force reload of file content */
     configdir = ConfigGetUserConfigPath();
     if (configdir == NULL) {
-        DebugMessage(M64MSG_ERROR, "Can't get user config path !");
+        DebugMessage(M64MSG_ERROR, "Can't get user config path!");
         return NULL;
     }
 
-    cfgfilepath = combinepath(configdir, MUPEN64PLUS_CFG_NAME);
-    if (cfgfilepath == NULL) {
+    if (combinepath(cfgfilepath, sizeof(cfgfilepath), configdir, MUPEN64PLUS_CFG_NAME)) {
         DebugMessage(M64MSG_ERROR, "Can't get config file path: %s + %s!", configdir, MUPEN64PLUS_CFG_NAME);
         return NULL;
     }
 
     if (ConfigExternalOpen(cfgfilepath, &core_config) != M64ERR_SUCCESS) {
         DebugMessage(M64MSG_ERROR, "Can't open config file %s!", cfgfilepath);
-        goto release_cfgfilepath;
+        goto out;
     }
 
     if (ConfigExternalGetParameter(core_config, section, key, value, sizeof(value)) != M64ERR_SUCCESS) {
@@ -864,8 +824,7 @@ static char* media_loader_get_filename(void* cb_data, m64p_handle section_handle
 
 close_config:
     ConfigExternalClose(core_config);
-release_cfgfilepath:
-    free(cfgfilepath);
+out:
     return mem_filename;
 }
 
