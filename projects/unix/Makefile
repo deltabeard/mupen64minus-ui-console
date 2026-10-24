@@ -70,7 +70,7 @@ Available options and their descriptions when enabled:
 endef
 
 SRCDIR = ../../src
-OBJDIR = _obj
+OBJDIR = _obj$(POSTFIX)
 
 # User-configurable build parameters
 DEBUGGER := 0
@@ -111,7 +111,12 @@ else
       ifneq ("$(wildcard $(TRYDIR)/m64p_types.h)","")
         CFLAGS += -I$(TRYDIR)
       else
-        $(error Mupen64Plus API header files not found! Use makefile parameter APIDIR to force a location.)
+        TRYDIR = ../../../mupen64plus-core/src/api
+        ifneq ("$(wildcard $(TRYDIR)/m64p_types.h)","")
+          CFLAGS += -I$(TRYDIR)
+        else
+          $(error Mupen64Plus API header files not found! Use makefile parameter APIDIR to force a location.)
+        endif
       endif
     endif
   endif
@@ -164,7 +169,11 @@ else
 SOURCE += \
 	$(SRCDIR)/osal_dynamiclib_unix.c \
 	$(SRCDIR)/osal_files_unix.c
+ifeq ($(shell uname -s),Darwin)
+LDLIBS += -framework CoreFoundation
+else
 LDLIBS += -ldl
+endif
 endif
 
 # generate a list of object files build, make a temporary directory for them
@@ -173,7 +182,10 @@ OBJDIRS = $(dir $(OBJECTS))
 $(shell $(MKDIR) $(OBJDIRS))
 
 # build targets
-TARGET = mupen64plus
+ifeq ($(OS),Windows_NT)
+  EXEEXT = .exe
+endif
+TARGET = mupen64plus$(POSTFIX)$(EXEEXT)
 
 # build dependency files
 CFLAGS += -MD -MP
@@ -182,6 +194,8 @@ CFLAGS += -MD -MP
 CFLAGS += -pthread $(OPTFLAGS) $(WARNFLAGS) -I$(SRCDIR)
 
 all: $(TARGET)
+
+rebuild: clean all
 
 clean:
 	$(RM) -r $(OBJDIR) $(TARGET)
@@ -215,4 +229,4 @@ $(OBJDIR)/%.o: $(SRCDIR)/%.c
 $(TARGET): $(OBJECTS)
 	$(CC) $(CFLAGS) $(LDFLAGS) $^ $(LDLIBS) -o $@
 
-.PHONY: all clean install uninstall help
+.PHONY: all clean rebuild install uninstall help
